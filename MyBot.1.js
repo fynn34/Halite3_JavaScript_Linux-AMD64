@@ -31,7 +31,6 @@ game.initialize().then(async () => {
 
         if (!gameMap.get(targetPos).isOccupied || (gameMap.get(targetPos).hasStructure && game.turnNumber > 0.95 * hlt.constants.MAX_TURNS)) {
           if (!(game.turnNumber > 0.95 * hlt.constants.MAX_TURNS && dropoffList.includes(targetPos))) {
-            gameMap.get(targetPos).markUnsafe(ship);
           }
           return direction;
         } {
@@ -39,11 +38,8 @@ game.initialize().then(async () => {
             const newMove = gameMap.getUnsafeMoves(ship.position, possibleMoves);
             logging.info(newMove);
             const differentTarget = ship.position.directionalOffset(newMove[Math.floor(newMove.length * Math.random())]);
-            // const differentTarget = possibleMoves;
             if (!gameMap.get(differentTarget).isOccupied) {
-              gameMap.get(differentTarget).markUnsafe(ship);
               return newMove[Math.floor(newMove.length * Math.random())];
-              // return differentTarget;
             }
           }
         }

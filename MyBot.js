@@ -33,7 +33,6 @@ game.initialize().then(async () => {
           if (!(game.turnNumber > 0.95 * hlt.constants.MAX_TURNS && dropoffList.includes(targetPos))) {
             logging.info("primary target " + ship.id);
             move.push(direction);
-            gameMap.get(targetPos).markUnsafe(ship);
             break;
           }
         } else if (gameMap.get(targetPos).isOccupied) {
@@ -42,7 +41,7 @@ game.initialize().then(async () => {
           let safeOptions = [];
           newOptions = ship.position.getSurroundingCardinals();
           safeOptions = newOptions.reduce(function (result, element) {
-            if (!gameMap.get(element).isOccupied) {
+            if (!gameMap.get(element).isOccupied && !gameMap.get(element).hasStructure) {
               result.push(element);
             }
             return result;
@@ -58,7 +57,6 @@ game.initialize().then(async () => {
             }
             let num = Math.floor(options.length * Math.random());
             let newDest = options[num];
-            gameMap.get(safeOptions[num]).markUnsafe(ship);
             move.push(newDest);
             logging.info("random move " + ship.id);
             break;
@@ -111,7 +109,7 @@ game.initialize().then(async () => {
           brokenCells[j].shift();
         } */
 
-    for (i = 0; i < brokenCells.length; i += 2) {
+    for (i = 0; i < brokenCells.length; i++) {
       allCells = allCells.concat(brokenCells[i]);
     }
 
@@ -133,7 +131,7 @@ game.initialize().then(async () => {
       return b.crossHalite - a.crossHalite;
     });
     for (i = 0; i < cellGroups.length; i++) {
-      if (cellGroups.length > 250) {
+      if (cellGroups.length > 350) {
         cellGroups.pop();
       }
     }
@@ -229,7 +227,7 @@ game.initialize().then(async () => {
         };
         for (i = 0; i < cellGroups.length; i++) {
           let dist = gameMap.calculateDistance(shipPosition, cellGroups[i].position);
-          let multiplier = Math.pow(dist, 1.1);
+          let multiplier = Math.pow(dist, 2);
           let score = Math.floor(cellGroups[i].crossHalite / multiplier);
           if (score > gravity.score) {
             gravity.position = cellGroups[i].position;
