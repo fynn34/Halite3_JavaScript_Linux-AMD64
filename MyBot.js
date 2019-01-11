@@ -25,7 +25,7 @@ game.initialize().then(async () => {
     } = game;
     const homePosition = me.shipyard.position;
 
-    const naiveNavigate2 = function (ship, destination) {
+    const naiveNavigate2 = function (ship, destination, shipState) {
       let move = [];
       for (const direction of gameMap.getUnsafeMoves(ship.position, destination)) {
         const targetPos = ship.position.directionalOffset(direction);
@@ -35,7 +35,7 @@ game.initialize().then(async () => {
             move.push(direction);
             break;
           }
-        } else if (gameMap.get(targetPos).isOccupied) {
+        } else if (gameMap.get(targetPos).isOccupied && shipState != "returning") {
           let newOptions = [];
           let options = [];
           let safeOptions = [];
@@ -136,6 +136,16 @@ game.initialize().then(async () => {
       }
     }
 
+    const findShipState = function (ship) {
+      let shipStateString = '';
+      for (i = 0; i < shipStatus.length; i++) {
+        if (shipStatus[i].shipId === ship.id) {
+          shipStateString = [i];
+        }
+      }
+      return shipStateString;
+    }
+
     const shipNumber = function (ship) {
       let shipvalue = -1;
       for (i = 0; i < shipStatus.length; i++) {
@@ -153,6 +163,7 @@ game.initialize().then(async () => {
       const homeDistance = gameMap.calculateDistance(shipPosition, homePosition);
       const shipId = ship.id;
       let shipListOrder = shipNumber(ship);
+      let shipState = findShipState(ship);
 
       if (shipListOrder <= 0) {
         shipDeets = {
@@ -162,6 +173,7 @@ game.initialize().then(async () => {
         shipStatus.push(shipDeets);
         shipNumber(ship);
         shipListOrder = shipNumber(ship);
+        shipState = shipState = findShipState(ship);
       }
 
       if ((shipHalite <= 100) && (game.turnNumber < (hlt.constants.MAX_TURNS * 0.95))) {
@@ -214,7 +226,7 @@ game.initialize().then(async () => {
           }
         }
         const destination = dropPoint.pos;
-        let safeMove = naiveNavigate2(ship, destination);
+        let safeMove = naiveNavigate2(ship, destination, shipState);
         if (safeMove.dx === 0 && safeMove.dy === 0) {
           safeMove.dx = -1;
         }
@@ -258,8 +270,8 @@ game.initialize().then(async () => {
           }
         }
         const destinationHalite = gameMap.get(movementResult.position).haliteAmount;
-        let safeMove = naiveNavigate2(ship, movementResult.position);
-        if ((destinationHalite * .25) - (currentHalite * .1) > (currentHalite * .25)) {
+        let safeMove = naiveNavigate2(ship, movementResult.position, shipState);
+        if ((destinationHalite * .25) - (currentHalite * .1) > (currentHalite * .25) || currentHalite < 20) {
           commandQueue.push(ship.move(safeMove));
           gameMap.get(ship.position.directionalOffset(safeMove)).markUnsafe(ship);
         } else {
