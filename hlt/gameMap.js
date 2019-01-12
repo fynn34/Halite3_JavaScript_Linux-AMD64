@@ -282,7 +282,7 @@ class GameMap {
     // that
     for (const direction of this.getUnsafeMoves(ship.position, destination)) {
       const targetPos = ship.position.directionalOffset(direction);
-
+ 
       if (!this.get(targetPos).isOccupied) {
         this.get(targetPos).markUnsafe(ship);
         return direction;

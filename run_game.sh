@@ -1,3 +1,3 @@
 #!/bin/sh
 
-./halite --no-replay --no-logs --width 32 --height 32 "node MyBot.js" "node MyBot.js" -i 10
+./halite --no-replay --no-logs "node MyBot.js" "node MyBot.js" -i 10

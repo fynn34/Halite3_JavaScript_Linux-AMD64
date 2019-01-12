@@ -35,7 +35,7 @@ game.initialize().then(async () => {
             move.push(direction);
             break;
           }
-        } else if (gameMap.get(targetPos).isOccupied && shipState != "returning") {
+        } else if (gameMap.get(targetPos).isOccupied) {
           let newOptions = [];
           let options = [];
           let safeOptions = [];
@@ -47,9 +47,6 @@ game.initialize().then(async () => {
             return result;
           }, []);
           options = safeOptions.map(position => gameMap.getUnsafeMoves(ship.position, position)[0]);
-          logging.info(`(${options.length}, ${safeOptions.length})`);
-          logging.info(options);
-          logging.info(safeOptions);
           if (safeOptions.length > 0) {
             let testDestination = [];
             for (i = 0; i < options.length; i++) {
@@ -61,6 +58,9 @@ game.initialize().then(async () => {
             logging.info("random move " + ship.id);
             break;
           }
+        } {
+          logging.info("No good moves! " + ship.id);
+          move.push(Direction.Still);
         }
 
         /* {
@@ -140,7 +140,7 @@ game.initialize().then(async () => {
       let shipStateString = '';
       for (i = 0; i < shipStatus.length; i++) {
         if (shipStatus[i].shipId === ship.id) {
-          shipStateString = [i];
+          shipStateString = shipStatus[i].shipState;
         }
       }
       return shipStateString;
@@ -165,24 +165,31 @@ game.initialize().then(async () => {
       let shipListOrder = shipNumber(ship);
       let shipState = findShipState(ship);
 
-      if (shipListOrder <= 0) {
-        shipDeets = {
+      if (shipListOrder < 0) {
+        let shipDeets = {
           shipId,
           shipState: "exploring"
         }
         shipStatus.push(shipDeets);
         shipNumber(ship);
         shipListOrder = shipNumber(ship);
-        shipState = shipState = findShipState(ship);
+        shipState = findShipState(ship);
       }
 
       if ((shipHalite <= 100) && (game.turnNumber < (hlt.constants.MAX_TURNS * 0.95))) {
-        for (i = 0; i < shipStatus.length; i++) {
-          if (shipStatus[i].shipId) {
-            shipStatus[i].shipState = "exploring"
+        if (shipState === "returning") {
+          let shipDeets = {
+            shipId,
+            shipState: "exploring"
           }
+          shipStatus.splice(shipListOrder, 1);
+          shipStatus.push(shipDeets);
+          shipNumber(ship);
+          shipListOrder = shipNumber(ship);
+          shipState = findShipState(ship);
         }
       }
+
 
       const checkDropoffDistance = function (shipPosition) {
         if (dropoffList.length >= 1) {
@@ -198,6 +205,8 @@ game.initialize().then(async () => {
         }
       }
 
+      logging.info(`ship ${ship.id} is currently ${shipState} and is ${homeDistance} from home at ${shipPosition} holding ${shipHalite} Halite`);
+
       if (currentHalite + shipHalite + me.haliteAmount >= 4000 &&
         makingDropoff === false &&
         homeDistance >= 16 &&
@@ -208,7 +217,7 @@ game.initialize().then(async () => {
         makingDropoff = true;
         commandQueue.push(ship.makeDropoff());
       } else if ((ship.haliteAmount > hlt.constants.MAX_HALITE * .8) ||
-        shipStatus[shipListOrder].shipState === "returning" || game.turnNumber > hlt.constants.MAX_TURNS * 0.95) {
+        shipState === "returning" || game.turnNumber > hlt.constants.MAX_TURNS * 0.95) {
         if (game.turnNumber > (0.95 * hlt.constants.MAX_TURNS)) {
           shipStatus[shipListOrder].shipState = "ending";
         } {
@@ -232,7 +241,7 @@ game.initialize().then(async () => {
         }
         commandQueue.push(ship.move(safeMove));
         gameMap.get(ship.position.directionalOffset(safeMove)).markUnsafe(ship);
-      } else if (gameMap.get(ship.position).haliteAmount < hlt.constants.MAX_HALITE / 10) {
+      } else if (gameMap.get(ship.position).haliteAmount < hlt.constants.MAX_HALITE / 20) {
         let gravity = {
           position: null,
           score: 0,
@@ -276,11 +285,13 @@ game.initialize().then(async () => {
           gameMap.get(ship.position.directionalOffset(safeMove)).markUnsafe(ship);
         } else {
           commandQueue.push(ship.stayStill());
+          logging.info("Not Worth Moving" + ship.id);
           gameMap.get(ship.position).markUnsafe(ship);
         }
 
       } else {
         gameMap.get(ship.position).markUnsafe(ship);
+        logging.info("I am collecting or stuck! " + gameMap.get(ship.position).haliteAmount + ' ' + hlt.constants.MAX_HALITE / 10 + ' ' + ship.id);
         commandQueue.push(ship.stayStill());
       }
     }
