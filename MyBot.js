@@ -32,7 +32,6 @@ game.initialize().then(async () => {
         if (!gameMap.get(targetPos).isOccupied || (gameMap.get(targetPos).hasStructure && game.turnNumber > 0.95 * hlt.constants.MAX_TURNS)) {
           if (!(game.turnNumber > 0.95 * hlt.constants.MAX_TURNS && dropoffList.includes(targetPos))) {
             move.push(direction);
-            break;
           }
         } else if (gameMap.get(targetPos).isOccupied) {
           let newOptions = [];
@@ -54,7 +53,6 @@ game.initialize().then(async () => {
             let num = Math.floor(options.length * Math.random());
             let newDest = options[num];
             move.push(newDest);
-            break;
           }
         } {
           move.push(Direction.Still);
@@ -63,7 +61,8 @@ game.initialize().then(async () => {
       if (gameMap.get(ship.position).hasStructure && move.length === 0) {
         return Direction.East;
       } else if (move.length > 0) {
-        return move[0];
+        let newMove = Math.floor(move.length * Math.random());
+        return move[newMove];
       } {
         return Direction.Still;
       }
@@ -197,7 +196,6 @@ game.initialize().then(async () => {
           makingDropoff === false) {
           makingDropoff = true;
           commandQueue.push(ship.makeDropoff());
-          continue;
         }
         let gravity = {
           position: null,
@@ -206,7 +204,7 @@ game.initialize().then(async () => {
         for (i = 0; i < cellGroups.length; i++) {
           let dist = gameMap.calculateDistance(shipPosition, cellGroups[i].position);
           let dropoffDist = gameMap.calculateDistance(me.shipyard.position, cellGroups[i].position);
-          let multiplier = Math.pow(1.1, dist);
+          let multiplier = Math.pow(1.08, dist);
           let score = Math.floor(cellGroups[i].crossHalite / multiplier);
           if (score > gravity.score && dropoffDist > 16) {
             //logging.info(`The cell with score: ${score}, gravity.score ${gravity.score} and dropoffDist: ${dropoffDist} is at:`);
@@ -239,7 +237,7 @@ game.initialize().then(async () => {
         }
         const destinationHalite = gameMap.get(movementResult.position).haliteAmount;
         let safeMove = naiveNavigate2(ship, movementResult.position, shipState);
-        if ((destinationHalite * .25) - (currentHalite * .1) > (currentHalite * .25) ||
+        if ((destinationHalite * .25) - (currentHalite * .1) > (currentHalite * .1) ||
           currentHalite < 20 || shipHalite >= 900) {
           commandQueue.push(ship.move(safeMove));
           gameMap.get(ship.position.directionalOffset(safeMove)).markUnsafe(ship);
@@ -276,9 +274,9 @@ game.initialize().then(async () => {
         }
         const destination = dropPoint.pos;
         let safeMove = naiveNavigate2(ship, destination, shipState);
-/*         if (safeMove.dx === 0 && safeMove.dy === 0) {
+        if (safeMove.dx === 0 && safeMove.dy === 0 && gameMap.get(shipPosition).hasStructure) {
           safeMove.dx = -1;
-        } */
+        }
         let safePosition = ship.position.directionalOffset(safeMove);
         if (!gameMap.get(safePosition).isOccupied || game.turnNumber > hlt.constants.MAX_TURNS * 0.95) {
           gameMap.get(ship.position.directionalOffset(safeMove)).markUnsafe(ship);
@@ -303,7 +301,6 @@ game.initialize().then(async () => {
           halite: 0
         };
         let options = gameMap.getUnsafeMoves(ship.position, gravity.position);
-        logging.info("options: " + options);
         if (options.length === 0) {
           options = options.reduce(function (result, element) {
             if (!gameMap.get(element).isOccupied) {
