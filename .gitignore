@@ -10,3 +10,4 @@ __pycache__/
 *.ipr
 *.iws
 hlt_client/
+hlt_client/*
