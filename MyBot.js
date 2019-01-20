@@ -278,6 +278,11 @@ game.initialize().then(async () => {
         let safeMove = naiveNavigate2(ship, destination, shipState);
 /*         if (safeMove.dx === 0 && safeMove.dy === 0) {
           safeMove.dx = -1;
+        } */
+        let safePosition = ship.position.directionalOffset(safeMove);
+        if (!gameMap.get(safePosition).isOccupied || game.turnNumber > hlt.constants.MAX_TURNS * 0.95) {
+          gameMap.get(ship.position.directionalOffset(safeMove)).markUnsafe(ship);
+          commandQueue.push(ship.move(safeMove));
         }
       } else if (gameMap.get(ship.position).haliteAmount < hlt.constants.MAX_HALITE / 15) {
         let gravity = {
