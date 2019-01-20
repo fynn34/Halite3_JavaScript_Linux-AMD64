@@ -12,7 +12,7 @@ game.initialize().then(async () => {
   // At this point "game" variable is populated with initial map data.
   // This is a good place to do computationally expensive start-up pre-processing.
   // As soon as you call "ready" function below, the 2 second per turn timer will start.
-  await game.ready('MyJavaScriptBot-jan7');
+  await game.ready('MyJavaScriptBot-19');
 
   logging.info(`My Player ID is ${game.myId}.`);
 
@@ -138,6 +138,7 @@ game.initialize().then(async () => {
       if (shipListOrder < 0) {
         let shipDeets = {
           shipId,
+          shipPosition,
           shipState: "exploring"
         }
         shipStatus.push(shipDeets);
@@ -150,6 +151,7 @@ game.initialize().then(async () => {
         if (shipState === "returning") {
           let shipDeets = {
             shipId,
+            shipPosition,
             shipState: "exploring"
           }
           shipStatus.splice(shipListOrder, 1);
@@ -164,7 +166,7 @@ game.initialize().then(async () => {
         let makingDropoff = true;
         for (i = 0; i < shipStatus.length; i++) {
           if (shipStatus[i].shipState === "creatingDropoff")
-          makingDropoff = false;
+            makingDropoff = false;
         }
         return makingDropoff;
       }
@@ -187,16 +189,16 @@ game.initialize().then(async () => {
         shipStatus[shipListOrder].shipState = "creatingDropoff"
       }
 
-      logging.info(`ship ${ship.id} is currently ${shipState} and is ${homeDistance} from home at ${shipPosition} holding ${shipHalite} Halite`);
+      //logging.info(`ship ${ship.id} is currently ${shipState} and is ${homeDistance} from home at ${shipPosition} holding ${shipHalite} Halite`);
 
       if (shipStatus[shipListOrder].shipState === "creatingDropoff") {
-        if (homeDistance >= 14  && 
-          (currentHalite + shipHalite + me.haliteAmount) >= 4000 
-          && makingDropoff === false) {
+        if (homeDistance >= 14 &&
+          (currentHalite + shipHalite + me.haliteAmount) >= 4000 &&
+          makingDropoff === false) {
           makingDropoff = true;
           commandQueue.push(ship.makeDropoff());
           continue;
-          }
+        }
         let gravity = {
           position: null,
           score: 0,
@@ -207,6 +209,7 @@ game.initialize().then(async () => {
           let multiplier = Math.pow(1.1, dist);
           let score = Math.floor(cellGroups[i].crossHalite / multiplier);
           if (score > gravity.score && dropoffDist > 16) {
+            //logging.info(`The cell with score: ${score}, gravity.score ${gravity.score} and dropoffDist: ${dropoffDist} is at:`);
             gravity.position = cellGroups[i].position;
             gravity.score = score;
           }
@@ -215,7 +218,6 @@ game.initialize().then(async () => {
           position: '',
           halite: 0
         };
-        logging.info(gravity.position);
         let options;
         options = gameMap.getUnsafeMoves(ship.position, gravity.position);
         if (options.length === 0) {
@@ -237,8 +239,8 @@ game.initialize().then(async () => {
         }
         const destinationHalite = gameMap.get(movementResult.position).haliteAmount;
         let safeMove = naiveNavigate2(ship, movementResult.position, shipState);
-        if ((destinationHalite * .25) - (currentHalite * .1) > (currentHalite * .25) 
-          || currentHalite < 20 || shipHalite >= 900) {
+        if ((destinationHalite * .25) - (currentHalite * .1) > (currentHalite * .25) ||
+          currentHalite < 20 || shipHalite >= 900) {
           commandQueue.push(ship.move(safeMove));
           gameMap.get(ship.position.directionalOffset(safeMove)).markUnsafe(ship);
         }
@@ -248,14 +250,14 @@ game.initialize().then(async () => {
         game.turnNumber < 0.70 * hlt.constants.MAX_TURNS &&
         !gameMap.get(ship.position).hasStructure &&
         dropoffList.length <= 3 &&
-        checkDropoffDistance(shipPosition)&&
+        checkDropoffDistance(shipPosition) &&
         me.getDropoffs().length >= 1) {
         makingDropoff = true;
         commandQueue.push(ship.makeDropoff());
-      } else if ((ship.haliteAmount > hlt.constants.MAX_HALITE * .8) 
-        && shipState != "creatingDropoff" 
-        || shipState === "returning" 
-        || game.turnNumber > hlt.constants.MAX_TURNS * 0.95) {
+      } else if ((ship.haliteAmount > hlt.constants.MAX_HALITE * .8) &&
+        shipState != "creatingDropoff" ||
+        shipState === "returning" ||
+        game.turnNumber > hlt.constants.MAX_TURNS * 0.95) {
         if (game.turnNumber > (0.95 * hlt.constants.MAX_TURNS)) {
           shipStatus[shipListOrder].shipState = "ending";
         } {
@@ -274,19 +276,17 @@ game.initialize().then(async () => {
         }
         const destination = dropPoint.pos;
         let safeMove = naiveNavigate2(ship, destination, shipState);
-        if (safeMove.dx === 0 && safeMove.dy === 0) {
+/*         if (safeMove.dx === 0 && safeMove.dy === 0) {
           safeMove.dx = -1;
         }
-        commandQueue.push(ship.move(safeMove));
-        gameMap.get(ship.position.directionalOffset(safeMove)).markUnsafe(ship);
-      } else if (gameMap.get(ship.position).haliteAmount < hlt.constants.MAX_HALITE / 20) {
+      } else if (gameMap.get(ship.position).haliteAmount < hlt.constants.MAX_HALITE / 15) {
         let gravity = {
           position: null,
           score: 0,
         };
         for (i = 0; i < cellGroups.length; i++) {
           let dist = gameMap.calculateDistance(shipPosition, cellGroups[i].position);
-          let multiplier = Math.pow(1.25, dist);
+          let multiplier = Math.pow(1.20, dist);
           let score = Math.floor(cellGroups[i].crossHalite / multiplier);
           if (score > gravity.score) {
             gravity.position = cellGroups[i].position;
@@ -297,17 +297,25 @@ game.initialize().then(async () => {
           position: '',
           halite: 0
         };
-        let options;
-        options = gameMap.getUnsafeMoves(ship.position, gravity.position);
+        let options = gameMap.getUnsafeMoves(ship.position, gravity.position);
+        logging.info("options: " + options);
         if (options.length === 0) {
-          newOptions = ship.position.getSurroundingCardinals();
-          newOptions.reduce(function (result, element) {
+          options = options.reduce(function (result, element) {
             if (!gameMap.get(element).isOccupied) {
               result.push(element);
             }
             return result;
           }, []);
-          options = newOptions.map(position => gameMap.getUnsafeMoves(ship.position, position)[0]);
+        }
+        if (options.length === 0) {
+          newOptions = ship.position.getSurroundingCardinals();
+          let newOptions2 = newOptions.reduce(function (result, element) {
+            if (!gameMap.get(element).isOccupied) {
+              result.push(element);
+            }
+            return result;
+          }, []);
+          options = newOptions2.map(position => gameMap.getUnsafeMoves(ship.position, position)[0]);
         }
         for (i = 0; i < options.length; i++) {
           let testDestination = ship.position.directionalOffset(options[i]);
@@ -316,11 +324,18 @@ game.initialize().then(async () => {
             movementResult.halite = gameMap.get(testDestination).haliteAmount;
           }
         }
-        const destinationHalite = gameMap.get(movementResult.position).haliteAmount;
-        let safeMove = naiveNavigate2(ship, movementResult.position, shipState);
-        if ((destinationHalite * .25) - (currentHalite * .1) > (currentHalite * .25) || currentHalite < 20) {
-          commandQueue.push(ship.move(safeMove));
-          gameMap.get(ship.position.directionalOffset(safeMove)).markUnsafe(ship);
+        if (options.length > 0) {
+          let destinationHalite = gameMap.get(movementResult.position).haliteAmount;
+          let safeMove = naiveNavigate2(ship, movementResult.position, shipState);
+          let safePosition = ship.position.directionalOffset(safeMove);
+          let reallySafe = gameMap.get(safePosition).isOccupied;
+          if ((destinationHalite * .25) - (currentHalite * .1) > (currentHalite * .25) && !reallySafe || currentHalite < 20 && !reallySafe) {
+            gameMap.get(safePosition).markUnsafe(ship);
+            commandQueue.push(ship.move(safeMove));
+          } else {
+            commandQueue.push(ship.stayStill());
+            gameMap.get(ship.position).markUnsafe(ship);
+          }
         } else {
           commandQueue.push(ship.stayStill());
           gameMap.get(ship.position).markUnsafe(ship);
@@ -334,7 +349,7 @@ game.initialize().then(async () => {
     if (game.turnNumber < 0.60 * hlt.constants.MAX_TURNS &&
       makingDropoff === false && me.haliteAmount >= hlt.constants.SHIP_COST &&
       !gameMap.get(me.shipyard).isOccupied &&
-      me.getShips().length <= 12) {
+      me.getShips().length <= 14) {
       commandQueue.push(me.shipyard.spawn());
     } else if (game.turnNumber < 0.60 * hlt.constants.MAX_TURNS &&
       me.haliteAmount >= hlt.constants.SHIP_COST &&
