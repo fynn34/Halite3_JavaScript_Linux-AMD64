@@ -58,6 +58,7 @@ game.initialize().then(async () => {
           move.push(Direction.Still);
         }
       }
+
       if (gameMap.get(ship.position).hasStructure && move.length === 0) {
         return Direction.East;
       } else if (move.length > 0) {
@@ -196,6 +197,7 @@ game.initialize().then(async () => {
           makingDropoff === false) {
           makingDropoff = true;
           commandQueue.push(ship.makeDropoff());
+          continue;
         }
         let gravity = {
           position: null,
